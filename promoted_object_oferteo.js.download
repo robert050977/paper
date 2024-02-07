@@ -1,0 +1,169 @@
+const oferteo_exludeAttr = document.querySelector('article').getAttribute("exclude_zpr_shopping")
+const OFERTEO_OBJECT_POSITION = 55;
+const is_video_sponsored = document.getElementsByClassName("video-sp").length > 0
+
+
+class OfertoBlock {
+
+    show() {
+        const element = document.getElementsByTagName("article")[0];
+        const place = this.getOferteoPromotedObjectPlace(element);
+        const promoHtml = this.getPromoContainerHTML();
+        const firstParagraph = this.getFirstParagraphIdx(element);
+          if (place["index"] > firstParagraph) {
+            this.selectPosition(place, promoHtml);
+          } else {
+            element.childNodes[firstParagraph].after(promoHtml);
+          }
+        this.runOferteoJS()
+        this.sendVisibilityEvent()
+      }
+      
+      getPromoContainerHTML = () => {
+      const mainWrapper = this.getWrapper("promo-wrapper");
+      mainWrapper.innerHTML = this.getOferteoInnerHtml()
+      return mainWrapper
+      };
+
+      getWrapper = (className) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = className
+        wrapper.id = className
+        return wrapper;
+      };
+
+      selectPosition = (place, promotedObject) => {
+        const excludedTags = ["H2"];
+        const excludedClasses = ["toc"];
+        const sibling = place["node"].previousElementSibling;
+        if (sibling.className !== undefined) {
+          if (
+            excludedTags.includes(sibling.tagName) ||
+            excludedClasses.some((r) => sibling.className.split(" ").includes(r))
+          ) {
+            sibling.before(promotedObject);
+            return;
+          }
+        }
+        place["node"].before(promotedObject);
+      };
+      
+      getFirstParagraphIdx = (parent) => {
+        const nodeName = "P";
+        const children = parent.childNodes.length;
+
+        let lead = 0;
+        for (let i = 0; i < children; i++) {
+          if (parent.childNodes[i].nodeName == nodeName) {
+            if (parent.childNodes[i].className != "lead") {
+              return i;
+            }
+            lead = i;
+          }
+        }
+        return lead;
+      };
+      
+      getOferteoPromotedObjectPlace = (
+        parent,
+      ) => {
+        let promotedObjectPosition = OFERTEO_OBJECT_POSITION / 100;
+        let promotedObjectHeight = 50;
+        let targetPosition = parent.offsetHeight * promotedObjectPosition;
+
+        let height = 0;
+        let children = parent.childNodes.length;
+        let previousNode = 0;
+        for (let i = 0; i < children; i++) {
+          let child = parent.childNodes[i];
+          if (child.offsetHeight !== undefined) {
+            if (height > targetPosition) {
+              if (height + promotedObjectHeight > targetPosition) {
+                return { index: previousNode, node: parent.childNodes[previousNode] };
+              }
+              return { index: i, node: child };
+            }
+            previousNode = i;
+            height += child.offsetHeight;
+          }
+        }
+        return { index: previousNode, node: parent.childNodes[previousNode] };
+      };
+      
+    getArticleFirstElementForOferteo = () => {
+        const container = document.querySelector(".block_list__container");
+        if (!!container) {
+          return container.querySelector("p");
+        }
+        return document.querySelector("article > p:not(.lead)");
+      }
+
+    getOferteoInnerHtml = () => {
+      return `<div class="oferteo-widget">
+          <div class="${oferteo_div_class}"></div>
+        </div>`
+    }
+    runOferteoJS = () => {
+        var tab = tab || [];
+        tab.push(function() {
+          const category_ext = document.location.href.split("/").slice(-2, -1);
+          var token = Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2);
+             var script = document.createElement('script');
+             script.type = 'text/javascript';
+             script.src = 'https://www.oferteo.pl/widget/pool/' + oferteo_poll_id + '?ext=' + category_ext + '&token=' + token;
+             document.body.appendChild(script);
+           });
+        for (i = 0; i < tab.length; i++) { tab[i](); tab.pop(); }
+    }
+
+    sendVisibilityEvent = () => {
+        if (typeof(setVisibilityEvent) !== "undefined"){
+          let promo_div = document.querySelector(".promo-wrapper")
+          setVisibilityEvent(promo_div,"oferteo")
+        }
+        else{
+          console.log("nie znaleziono funkcji")
+        }
+    }
+}
+
+
+if (document.readyState !== 'loading') {
+    OferteoMainFuncition()
+} else {
+    document.addEventListener('DOMContentLoaded', OferteoMainFuncition);
+}
+
+function OferteoMainFuncition () {
+  if (oferteo_exludeAttr == "True" || is_video_sponsored) {
+     console.log("Oferto testowe wylaczone ze wzgledy na sponsored");
+     return;
+  }
+  console.log("Oferto włączone");
+  const ofertoBlock = new OfertoBlock();
+  const articleFirstParagraphOferteo = ofertoBlock.getArticleFirstElementForOferteo();
+  if (!!articleFirstParagraphOferteo) {
+    ofertoBlock.show();
+
+    // const observer_ofereo = new IntersectionObserver(
+    //     (entries_oferteo, observer_oferteo) => {
+    //         entries_oferteo.forEach(entry => {
+    //             console.log("oferteo observer in")
+    //             if (entry.isIntersecting) {
+    //                 console.log("oferteo show")
+    //                ofertoBlock.show()
+    //             observer_oferteo.unobserve(entry.target);
+    //             };
+    //         });
+    //     },
+    //     {rootMargin: "200px 0px 0px 0px"},
+    // );
+
+    // if (articleFirstParagraphOferteo.getBoundingClientRect().top < 0){
+    // observer_ofereo.observe(articleFirstParagraphOferteo);
+    // }
+    // else {
+    //    ofertoBlock.show();
+    // }
+  }
+};
